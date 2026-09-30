@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LegacyVault</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+
+:root{
+  --bg:#12151c;
+  --panel:#191d26;
+  --panel2:#1f2531;
+  --line:#2f3646;
+  --ink:#e9ebf1;
+  --dim:#9099ae;
+  --brass:#c9a24b;
+  --brass2:#83692f;
+  --teal:#4a9b8e;
+  --rust:#c05a42;
+  --rust2:#7d3d2c;
+  --display:'Cormorant Garamond',Georgia,serif;
+  --ui:'Inter',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+}
+
+*{ box-sizing:border-box; }
+html, body{ margin:0; padding:0; }
+
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(ellipse at 80% -10%, rgba(201,162,75,.06), transparent 40%),
+    var(--bg);
+  color:var(--ink);
+  font-family:var(--ui);
+  line-height:1.6;
+}
+
+button, input, textarea, select{ font-family:inherit; }
+
+button{
+  cursor:pointer;
+  border:1px solid var(--line);
+  background:var(--panel2);
+  color:var(--ink);
+  border-radius:4px;
+  padding:9px 16px;
+  font-size:14px;
+}
+button:hover:not(:disabled){ border-color:var(--brass2); }
+button:disabled{ opacity:.4; cursor:not-allowed; }
+button.primary{ background:var(--brass); border-color:var(--brass); color:#211a08; font-weight:600; }
+button.teal{ border-color:var(--teal); color:#bfe6de; }
+button.danger{ border-color:var(--rust2); color:#e6a08c; }
+button.ghost{ background:transparent; }
+button.small{ padding:5px 10px; font-size:12.5px; }
+
+input, textarea, select{
+  width:100%;
+  padding:9px 11px;
+  border:1px solid var(--line);
+  border-radius:4px;
+  background:var(--panel2);
+  color:var(--ink);
+  font-size:14px;
+}
+input.invalid{ border-color:var(--rust); }
+
+label{ display:block; color:var(--dim); font-size:12.5px; margin-bottom:5px; }
+.field{ margin-bottom:14px; }
+.num{ font-family:var(--mono); }
+
+.shell{ max-width:1180px; margin:auto; padding:22px 20px 80px; }
+
+header.top{
+  display:flex; align-items:flex-end; justify-content:space-between;
+  gap:16px; padding-bottom:18px; margin-bottom:22px;
+  border-bottom:1px solid var(--line); flex-wrap:wrap;
+}
+.brand h1{ margin:0; font-family:var(--display); font-size:29px; font-weight:600; }
+.brand p{ margin:4px 0 0; color:var(--dim); font-size:13.5px; }
+.top-actions{ display:flex; align-items:center; gap:10px; }
+
+.pill{
+  display:inline-flex; align-items:center; gap:6px;
+  border:1px solid var(--line); border-radius:999px;
+  padding:5px 12px; font-size:12.5px; color:var(--dim);
+}
+.pill .dot{ width:7px; height:7px; border-radius:50%; background:var(--dim); }
+.pill.live .dot{ background:var(--brass); }
+
+.board{ display:grid; grid-template-columns:340px 1fr; gap:20px; align-items:start; }
+@media(max-width:860px){ .board{ grid-template-columns:1fr; } }
+
+.panel{ background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:18px; }
+.panel h2{ margin:0 0 14px; font-size:15px; color:var(--dim); }
+
+.vault-row{
+  display:block; width:100%; text-align:left; background:transparent;
+  border:1px solid transparent; border-bottom:1px solid var(--line);
+  border-radius:0; padding:12px 6px;
+}
+.vault-row:first-child{ border-top:1px solid var(--line); }
+.vault-row.active{ background:var(--panel2); border-color:var(--brass2); }
+.vault-row .q{ font-size:13.5px; margin-bottom:6px; font-family:var(--mono); }
+.vault-row .meta{ display:flex; justify-content:space-between; color:var(--dim); font-size:11.5px; }
+
+.status-tag{ font-size:10.5px; padding:2px 8px; border-radius:999px; border:1px solid var(--line); }
+.status-tag.active{ color:var(--teal); border-color:#2e5a52; }
+.status-tag.pending_release{ color:var(--rust); border-color:var(--rust2); }
+.status-tag.released{ color:var(--brass); border-color:var(--brass2); }
+
+.seal{
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
+  width:96px; height:96px; border-radius:50%; border:2px solid var(--brass2);
+  margin:4px auto 18px;
+}
+.seal .big{ font:700 22px var(--mono); color:var(--brass); }
+.seal .small{ font-size:9.5px; color:var(--dim); text-transform:uppercase; }
+
+.kv{ display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px dashed var(--line); font-size:13px; }
+.kv:last-child{ border-bottom:none; }
+.kv .k{ color:var(--dim); flex-shrink:0; }
+.kv .v{ text-align:right; word-break:break-all; }
+
+.tabs{ display:flex; gap:6px; margin-bottom:14px; border-bottom:1px solid var(--line); overflow-x:auto; }
+.tabs button{ border:none; background:none; border-radius:0; padding:8px 4px; margin-right:14px; color:var(--dim); white-space:nowrap; }
+.tabs button.active{ color:var(--brass); border-bottom:2px solid var(--brass); }
+
+.empty{ color:var(--dim); text-align:center; padding:30px 10px; font-size:13px; }
+
+.row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+@media(max-width:700px){ .row2, .row3{ grid-template-columns:1fr; } }
+
+.divider{ height:1px; background:var(--line); margin:16px 0; }
+.hint{ color:var(--dim); font-size:11.5px; margin-top:5px; }
+.hint.warn{ color:var(--rust); }
+.hint.good{ color:var(--teal); }
+
+.beneficiary-row, .guardian-row{ display:flex; gap:8px; margin-bottom:8px; align-items:center; }
+
+.overlay{
+  position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+  background:rgba(6,8,12,.7); z-index:50; padding:20px;
+}
+.overlay.show{ display:flex; }
+.modal{
+  width:100%; max-width:480px; max-height:88vh; overflow:auto; padding:22px;
+  background:var(--panel); border:1px solid var(--line); border-radius:8px;
+}
+.modal h3{ margin:0 0 16px; font:600 20px var(--display); }
+.modal-actions{ display:flex; gap:10px; margin-top:18px; }
+
+.toasts{ position:fixed; bottom:16px; left:16px; z-index:60; display:flex; flex-direction:column; gap:8px; max-width:380px; }
+.toast{
+  background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--brass);
+  border-radius:5px; padding:11px 14px; font-size:13px; box-shadow:0 6px 18px rgba(0,0,0,.4);
+}
+.toast.err{ border-left-color:var(--rust); }
+.toast.ok{ border-left-color:var(--teal); }
+.toast .t-title{ font-weight:600; margin-bottom:2px; }
+.toast .t-body{ color:var(--dim); font-size:12px; word-break:break-word; }
+
+details.debug{ margin-top:20px; }
+details.debug summary{ cursor:pointer; color:var(--dim); font-size:12px; }
+details.debug pre{
+  background:#0d0f14; border:1px solid var(--line); border-radius:5px;
+  padding:10px; font:11px var(--mono); max-height:300px; overflow:auto;
+}
+
+.token-box{
+  display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px;
+  background:#0d0f14; border:1px solid var(--brass2); border-radius:5px;
+  font:12px var(--mono); word-break:break-all;
+}
+
+.countdown{ color:var(--brass); font-family:var(--mono); }
+.deadline-past{ color:var(--rust); }
+
+.deposit-box{ margin-top:16px; padding:14px; border:1px solid var(--line); background:var(--panel2); border-radius:5px; }
+.deposit-box h4{ margin:0 0 10px; color:var(--ink); font-size:13px; }
+.deposit-row{ display:grid; grid-template-columns:1fr auto; gap:10px; }
+@media(max-width:520px){ .deposit-row{ grid-template-columns:1fr; } }
+
+.notice{
+  border:1px solid var(--brass2); background:rgba(201,162,75,.08);
+  border-radius:5px; padding:10px 12px; font-size:12px; color:var(--dim); margin-bottom:14px;
+}
+.notice b{ color:var(--ink); }
+
+footer{ text-align:center; color:var(--dim); font-size:11.5px; margin-top:40px; }
+
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+<header class="top">
+  <div class="brand">
+    <h1>Legacy Vault</h1>
+    <p>A dead-man's-switch inheritance vault, verified by GenLayer validator consensus</p>
+  </div>
+  <div class="top-actions">
+    <span id="netPill" class="pill"><span class="dot"></span><span id="netLabel">Studio</span></span>
+    <button id="settingsBtn" class="ghost small">Settings</button>
+    <button id="connectBtn" class="primary">Connect Wallet</button>
+  </div>
+</header>
+
+<div class="board">
+
+  <div class="panel">
+    <h2>Vaults</h2>
+    <div style="display:flex; gap:8px; margin-bottom:12px;">
+      <button id="refreshBtn" class="ghost small" style="flex:1">Refresh</button>
+      <button id="newVaultBtn" class="small" style="flex:1">New Vault +</button>
+    </div>
+    <div id="vaultList"><div class="empty">Loading vaults…</div></div>
+  </div>
+
+  <div class="panel" id="mainPanel">
+    <div class="empty">Select a vault from the list, or create a new one.</div>
+  </div>
+
+</div>
+
+<details class="debug">
+  <summary>Raw console (debug)</summary>
+  <pre id="debugLog">—</pre>
+</details>
+
+<footer>Runs locally against GenLayer Studio.</footer>
+</div>
+
+<!-- SETTINGS -->
+<div class="overlay" id="settingsOverlay">
+  <div class="modal">
+    <h3>Network Settings</h3>
+    <div class="field"><label>LegacyVault contract address</label><input id="cfgAddress" class="num" readonly></div>
+    <div class="field"><label>Studio RPC</label><input id="cfgRpc" class="num" readonly></div>
+    <div class="field"><label>Chain ID</label><input id="cfgChainId" class="num" readonly></div>
+    <p class="hint">The application uses the deployed LegacyVault contract and GenLayer Studionet.</p>
+    <div class="modal-actions"><button id="cfgClose" class="primary">Close</button></div>
+  </div>
+</div>
+
+<!-- CREATE VAULT -->
+<div class="overlay" id="newVaultOverlay">
+  <div class="modal">
+    <h3>Create a New Vault</h3>
+
+    <div class="field">
+      <label>Beneficiaries</label>
+      <div id="beneficiaryRows"></div>
+      <button id="addBeneficiary" class="ghost small" type="button">+ Add beneficiary</button>
+      <p class="hint" id="bpsSumHint"></p>
+      <p class="hint" id="dupHint"></p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <label>Guardians (comma-separated, optional)</label>
+      <input id="nvGuardians" class="num" placeholder="0xabc..., 0xdef...">
+    </div>
+    <div class="field">
+      <label>Guardian votes needed</label>
+      <input id="nvThreshold" class="num" type="number" min="1" value="1">
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="row3">
+      <div class="field">
+        <label>Check-in interval (sec)</label>
+        <input id="nvInterval" class="num" type="number" min="300" step="1" value="600">
+        <p class="hint">Minimum: 300 seconds</p>
+      </div>
+      <div class="field">
+        <label>Grace period (sec)</label>
+        <input id="nvGrace" class="num" type="number" min="60" step="1" value="300">
+        <p class="hint">Minimum: 60 seconds</p>
+      </div>
+      <div class="field">
+        <label>Contest period (sec)</label>
+        <input id="nvContest" class="num" type="number" min="60" step="1" value="300">
+        <p class="hint">Minimum: 60 seconds</p>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Attestation URL (optional)</label>
+      <input id="nvAttestation" class="num" placeholder="https://raw.githubusercontent.com/<your-username>/<repo>/<branch>/status.txt">
+      <p class="hint" id="attestationHint">
+        Only <span class="num">https://raw.githubusercontent.com/...</span> is accepted. The
+        contract restricts attestation to this one prefix on purpose — a URL you fully
+        control the DNS/hosting for is easier to spoof than a specific pre-named GitHub
+        account. Leave this blank to rely on the check-in timer alone.
+      </p>
+    </div>
+
+    <div class="notice">
+      <b>Fail-closed by design:</b> if validators can't reach this URL when a release is
+      requested (network issue, page down, GitHub outage), the request is rejected and the
+      vault stays exactly as it was — an outage can never release funds early. It can only
+      ever delay a legitimate release, never cause one it shouldn't.
+    </div>
+
+    <div class="field">
+      <label>Initial deposit (GEN)</label>
+      <input id="nvDeposit" class="num" type="number" step="any" min="0" placeholder="1">
+    </div>
+
+    <div class="modal-actions">
+      <button id="nvSubmit" class="primary">Create Vault</button>
+      <button id="nvClose" class="ghost">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOKEN -->
+<div class="overlay" id="tokenOverlay">
+  <div class="modal">
+    <h3>Attestation Token</h3>
+    <p class="hint">
+      Publish this exact string in a file under your allowlisted GitHub URL. As long as
+      it's there, release requests will be refused. Removing it — deliberately, or once
+      you stop maintaining that repo — is what allows release to proceed after the timer
+      lapses. This is shown once; copy it now.
+    </p>
+    <div class="token-box"><span id="tokenValue"></span><button id="tokenCopy" class="small">Copy</button></div>
+    <div class="modal-actions"><button id="tokenClose" class="primary">Done</button></div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script type="module">
+
+import { createClient } from "https://cdn.jsdelivr.net/npm/genlayer-js/+esm";
+import * as chains from "https://cdn.jsdelivr.net/npm/genlayer-js/chains/+esm";
+
+/* ============================================================
+   FIXED CONFIG
+   ============================================================ */
+
+const CONTRACT_ADDRESS = "0x2e7D650f94D13c9E22F0aFb82A5a7A540ae59DA3";
+const STUDIO_RPC = "https://studio.genlayer.com/api";
+const STUDIO_CHAIN_ID = 61999;
+const GEN_DECIMALS = 18n;
+const BPS_TOTAL = 10000;
+const MIN_TIME_SECONDS = 60;          // matches contract's lowest floor (contest/grace)
+const MIN_CHECKIN_INTERVAL = 300;     // matches contract's checkin_interval floor
+const ATTESTATION_URL_PREFIX = "https://raw.githubusercontent.com/";
+
+/* ============================================================
+   STATE
+   ============================================================ */
+
+const state = {
+  address: null,
+  readClient: null,
+  writeClient: null,
+  vaults: [],
+  activeId: null,
+  activeTab: "overview",
+  countdownTimer: null,
+  refreshInProgress: false
+};
+
+/* ============================================================
+   ADDRESS HELPERS
+   ============================================================ */
+
+function isAddress(address){
+  return /^0x[a-fA-F0-9]{40}$/.test(String(address || "").trim());
+}
+function getContractAddress(){
+  const address = CONTRACT_ADDRESS.trim();
+  if(!isAddress(address)) throw new Error("Invalid contract address: " + address);
+  return address;
+}
+function normalizeWalletAddress(address){
+  return String(address || "").trim().toLowerCase();
+}
+function shortAddr(address){
+  if(!address) return "";
+  return address.slice(0,6) + "…" + address.slice(-4);
+}
+
+/* ============================================================
+   HTML ESCAPE
+   ============================================================ */
+
+function escapeHtml(value){
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  }[char]));
+}
+
+/* ============================================================
+   DEBUG
+   ============================================================ */
+
+function log(label, data){
+  const box = document.getElementById("debugLog");
+  let output;
+  try{
+    output = typeof data === "string" ? data : JSON.stringify(
+      data, (_, value) => typeof value === "bigint" ? value.toString() : value, 2
+    );
+  }catch{ output = String(data); }
+  const line = `[${new Date().toLocaleTimeString()}] ${label}\n${output}`;
+  box.textContent = (line + "\n\n" + box.textContent).slice(0, 16000);
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+
+function toast(title, body="", type=""){
+  const container = document.getElementById("toasts");
+  const element = document.createElement("div");
+  element.className = "toast " + type;
+  element.innerHTML = `
+    <div class="t-title">${escapeHtml(title)}</div>
+    <div class="t-body">${escapeHtml(body)}</div>
+  `;
+  container.appendChild(element);
+  setTimeout(() => element.remove(), 10000);
+}
+
+/* ============================================================
+   CHAIN
+   ============================================================ */
+
+function getStudioChain(){
+  if(!chains.studionet) throw new Error("GenLayer Studionet chain is unavailable.");
+  return chains.studionet;
+}
+
+/* ============================================================
+   READ CLIENT
+   ============================================================ */
+
+function getReadClient(){
+  if(state.readClient) return state.readClient;
+  const chain = getStudioChain();
+  state.readClient = createClient({ chain });
+  log("READ CLIENT CREATED", { chainId: chain.id, chainName: chain.name, contract: getContractAddress(), rpc: STUDIO_RPC });
+  return state.readClient;
+}
+
+/* ============================================================
+   WALLET
+   ============================================================ */
+
+async function getWalletAccount(){
+  if(!window.ethereum) throw new Error("MetaMask is not installed.");
+  const accounts = await window.ethereum.request({ method: "eth_accounts" });
+  const account = accounts?.[0];
+  if(!account) throw new Error("No wallet account connected.");
+  if(!isAddress(account)) throw new Error("Invalid wallet address.");
+  return account;
+}
+
+async function connectWallet(){
+  if(!window.ethereum){
+    toast("MetaMask not found", "Please install MetaMask.", "err");
+    return;
+  }
+  try{
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    const account = accounts?.[0];
+    if(!account) throw new Error("No wallet account returned.");
+
+    state.address = account;
+    const chain = getStudioChain();
+
+    state.readClient = createClient({ chain });
+    state.writeClient = createClient({ chain, account, provider: window.ethereum });
+
+    document.getElementById("connectBtn").textContent = shortAddr(account);
+    document.getElementById("netPill").classList.add("live");
+    document.getElementById("netLabel").textContent = `${chain.name || "Studionet"} · #${chain.id}`;
+
+    log("WALLET CONNECTED", { account, normalized: normalizeWalletAddress(account), contract: getContractAddress(), chainId: chain.id });
+    toast("Wallet connected", shortAddr(account), "ok");
+
+    await refreshVaults();
+  }catch(error){
+    log("CONNECT ERROR", error?.stack || error?.message || String(error));
+    toast("Connection failed", error?.message || String(error), "err");
+  }
+}
+
+/* ============================================================
+   READ CONTRACT
+   ============================================================ */
+
+async function callView(functionName, args=[]){
+  const address = getContractAddress();
+  const client = getReadClient();
+  log(`VIEW ${functionName}`, { address, functionName, args, chainId: STUDIO_CHAIN_ID });
+  try{
+    const result = await client.readContract({ address, functionName, args });
+    log(`VIEW RESULT ${functionName}`, result);
+    return result;
+  }catch(error){
+    log(`VIEW ERROR ${functionName}`, { message: error?.message || String(error), name: error?.name, address, args, chainId: STUDIO_CHAIN_ID });
+    throw error;
+  }
+}
+
+/* ============================================================
+   WRITE CONTRACT
+   ============================================================ */
+
+async function callWrite(functionName, args=[], valueWei=0n){
+  const account = await getWalletAccount();
+  state.address = account;
+
+  const targetAddress = getContractAddress();
+  if(!isAddress(targetAddress)) throw new Error("Invalid contract address: " + targetAddress);
+  if(!isAddress(account)) throw new Error("Invalid wallet address: " + account);
+  if(typeof valueWei !== "bigint") valueWei = BigInt(valueWei || 0);
+
+  const chain = getStudioChain();
+  state.writeClient = createClient({ chain, account, provider: window.ethereum });
+
+  const payload = { address: targetAddress, functionName, args };
+  if(valueWei > 0n) payload.value = valueWei;
+
+  log("WRITE DEBUG", { functionName, account, contractAddress: targetAddress, args, valueWei: valueWei.toString(), chainId: chain.id, rpc: STUDIO_RPC });
+
+  try{
+    const hash = await state.writeClient.writeContract(payload);
+    log("TRANSACTION HASH", hash);
+    toast("Transaction sent", `${functionName} · waiting for finalization…`);
+
+    const receipt = await state.writeClient.waitForTransactionReceipt({ hash });
+    log(`RECEIPT ${functionName}`, receipt);
+    return receipt;
+  }catch(error){
+    log(`WRITE ERROR ${functionName}`, { message: error?.message || String(error), name: error?.name, stack: error?.stack });
+    throw error;
+  }
+}
+
+/* ============================================================
+   GEN CONVERSION
+   ============================================================ */
+
+function toWei(amount){
+  const value = String(amount || "0").trim();
+  if(!value) return 0n;
+  if(!/^\d+(\.\d+)?$/.test(value)) throw new Error("Invalid GEN amount: " + value);
+  const [whole="0", fraction=""] = value.split(".");
+  if(fraction.length > 18) throw new Error("GEN supports up to 18 decimals.");
+  const padded = (fraction + "0".repeat(18)).slice(0, 18);
+  return (BigInt(whole) * 10n ** GEN_DECIMALS) + BigInt(padded || "0");
+}
+
+function fromWei(value){
+  const wei = BigInt(value || "0");
+  const base = 10n ** GEN_DECIMALS;
+  const whole = wei / base;
+  const fraction = (wei % base).toString().padStart(18, "0").replace(/0+$/, "") || "0";
+  return `${whole}.${fraction}`;
+}
+
+/* ============================================================
+   TIME
+   ============================================================ */
+
+function formatDate(epoch){
+  if(epoch === null || epoch === undefined || Number.isNaN(Number(epoch))) return "—";
+  return new Date(Number(epoch) * 1000).toLocaleString();
+}
+
+function formatRemaining(seconds){
+  const value = Number(seconds || 0);
+  if(value <= 0) return "past due";
+  const days = Math.floor(value / 86400);
+  const hours = Math.floor((value % 86400) / 3600);
+  const minutes = Math.floor((value % 3600) / 60);
+  const secs = Math.floor(value % 60);
+  if(days) return `${days}d ${hours}h ${minutes}m`;
+  if(hours) return `${hours}h ${minutes}m ${secs}s`;
+  if(minutes) return `${minutes}m ${secs}s`;
+  return `${secs}s`;
+}
+
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+
+document.getElementById("settingsBtn").onclick = () => {
+  document.getElementById("cfgAddress").value = CONTRACT_ADDRESS;
+  document.getElementById("cfgRpc").value = STUDIO_RPC;
+  document.getElementById("cfgChainId").value = String(STUDIO_CHAIN_ID);
+  document.getElementById("settingsOverlay").classList.add("show");
+};
+document.getElementById("cfgClose").onclick = () => {
+  document.getElementById("settingsOverlay").classList.remove("show");
+};
+
+[ "settingsOverlay", "newVaultOverlay", "tokenOverlay" ].forEach(id => {
+  document.getElementById(id).addEventListener("click", event => {
+    if(event.target.id === id) event.currentTarget.classList.remove("show");
+  });
+});
+
+/* ============================================================
+   REFRESH VAULTS
+   ============================================================ */
+
+async function refreshVaults(){
+  if(state.refreshInProgress) return;
+  state.refreshInProgress = true;
+
+  const list = document.getElementById("vaultList");
+  list.innerHTML = `<div class="empty">Loading vaults…</div>`;
+
+  try{
+    const raw = await callView("list_vaults");
+    const ids = JSON.parse(raw || "[]");
+    log("VAULT IDS", ids);
+
+    if(!ids.length){
+      state.vaults = [];
+      list.innerHTML = `<div class="empty">No vaults created yet.</div>`;
+      return;
+    }
+
+    const vaults = [];
+    for(const id of ids){
+      try{
+        const vaultRaw = await callView("get_vault", [id]);
+        vaults.push(JSON.parse(vaultRaw));
+      }catch(error){
+        log(`GET VAULT FAILED #${id}`, error?.message || String(error));
+      }
+    }
+
+    state.vaults = vaults.reverse();
+    renderVaultList();
+
+    if(state.activeId){
+      const exists = state.vaults.some(v => String(v.id) === String(state.activeId));
+      if(exists) await renderVaultDetail(state.activeId, false);
+    }
+  }catch(error){
+    log("REFRESH ERROR", { message: error?.message || String(error), stack: error?.stack });
+    list.innerHTML = `<div class="empty">Failed to read the contract.</div>`;
+    toast("Failed to load vaults", error?.message || String(error), "err");
+  }finally{
+    state.refreshInProgress = false;
+  }
+}
+
+function renderVaultList(){
+  const list = document.getElementById("vaultList");
+  if(!state.vaults.length){
+    list.innerHTML = `<div class="empty">No vaults found.</div>`;
+    return;
+  }
+  list.innerHTML = "";
+  state.vaults.forEach(vault => {
+    const row = document.createElement("button");
+    row.className = "vault-row" + (String(vault.id) === String(state.activeId) ? " active" : "");
+    row.innerHTML = `
+      <div class="q">#${escapeHtml(vault.id)} · ${shortAddr(vault.owner)}</div>
+      <div class="meta">
+        <span>${fromWei(vault.balance_wei)} GEN</span>
+        <span class="status-tag ${escapeHtml(vault.status)}">${escapeHtml(statusLabel(vault.status))}</span>
+      </div>
+    `;
+    row.onclick = () => renderVaultDetail(vault.id, true);
+    list.appendChild(row);
+  });
+}
+
+function statusLabel(status){
+  return { active:"Active", pending_release:"Pending Release", released:"Released" }[status] || status || "Unknown";
+}
+
+async function refreshAfterWrite(id, label){
+  log("POST-WRITE REFRESH", { id, label });
+  await refreshVaults();
+  if(id) await renderVaultDetail(id, false);
+}
+
+/* ============================================================
+   COUNTDOWN
+   ============================================================ */
+
+function stopCountdown(){
+  if(state.countdownTimer){ clearInterval(state.countdownTimer); state.countdownTimer = null; }
+}
+function startCountdown(){
+  stopCountdown();
+  state.countdownTimer = setInterval(updateCountdownOnly, 1000);
+}
+function updateCountdownOnly(){
+  const element = document.getElementById("liveCountdown");
+  if(!element) return;
+  const deadline = Number(element.dataset.deadline || 0);
+  if(!deadline) return;
+  const now = Math.floor(Date.now() / 1000);
+  const remaining = deadline - now;
+  element.textContent = formatRemaining(remaining);
+  element.classList.toggle("deadline-past", remaining <= 0);
+  if(remaining <= 0 && !element.dataset.reloaded){
+    element.dataset.reloaded = "1";
+    renderVaultDetail(state.activeId, false);
+  }
+}
+
+/* ============================================================
+   RENDER VAULT DETAIL
+   ============================================================ */
+
+async function renderVaultDetail(id, showLoading=true){
+  state.activeId = String(id);
+  renderVaultList();
+
+  const main = document.getElementById("mainPanel");
+  if(showLoading) main.innerHTML = `<div class="empty">Loading vault #${escapeHtml(id)}…</div>`;
+
+  try{
+    const raw = await callView("get_vault", [id]);
+    const vault = JSON.parse(raw);
+    log("ACTIVE VAULT", vault);
+
+    const now = Math.floor(Date.now() / 1000);
+    const wallet = state.address ? normalizeWalletAddress(state.address) : "";
+    const owner = normalizeWalletAddress(vault.owner);
+    const isOwner = Boolean(wallet && wallet === owner);
+    const isGuardian = Boolean(wallet && (vault.guardians || []).map(normalizeWalletAddress).includes(wallet));
+    const isBeneficiary = Boolean(wallet && (vault.beneficiaries || []).some(b => normalizeWalletAddress(b.address) === wallet));
+
+    let claimed = false;
+    if(wallet){
+      try{
+        const claimedRaw = await callView("has_claimed", [id, wallet]);
+        claimed = claimedRaw === true || claimedRaw === "true";
+      }catch(error){
+        log("HAS CLAIMED ERROR", error?.message || String(error));
+      }
+    }
+
+    const lastCheckin = Number(vault.last_checkin || 0);
+    const interval = Number(vault.checkin_interval || 0);
+    const grace = Number(vault.grace_period || 0);
+    const deadline = lastCheckin + interval + grace;
+    const timeToDeadline = deadline - now;
+
+    const pendingSince = vault.pending_since ? Number(vault.pending_since) : 0;
+    const contestPeriod = Number(vault.contest_period || 0);
+    const contestDeadline = pendingSince ? pendingSince + contestPeriod : 0;
+
+    main.innerHTML = `
+      <div class="seal">
+        <div class="big">${escapeHtml(String((vault.beneficiaries || []).length))}</div>
+        <div class="small">beneficiaries</div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px;">
+        <h2 style="color:var(--ink); font-family:var(--display); font-size:22px; margin:0;">Vault #${escapeHtml(vault.id)}</h2>
+        <span class="status-tag ${escapeHtml(vault.status)}">${escapeHtml(statusLabel(vault.status))}</span>
+      </div>
+
+      <div class="kv"><span class="k">Owner</span><span class="v num">${escapeHtml(vault.owner)} ${isOwner ? " (you)" : ""}</span></div>
+      <div class="kv"><span class="k">Balance</span><span class="v num">${fromWei(vault.balance_wei)} GEN</span></div>
+
+      ${vault.status === "active" ? `
+        <div class="kv">
+          <span class="k">Check-in deadline</span>
+          <span class="v">
+            <span id="liveCountdown" class="countdown ${timeToDeadline <= 0 ? "deadline-past" : ""}" data-deadline="${deadline}">
+              ${formatRemaining(timeToDeadline)}
+            </span>
+            <br>
+            <span class="num" style="color:var(--dim); font-size:11px;">${formatDate(deadline)}</span>
+          </span>
+        </div>
+      ` : ""}
+
+      ${vault.status === "pending_release" ? `
+        <div class="kv"><span class="k">Pending since</span><span class="v num">${formatDate(pendingSince)}</span></div>
+        <div class="kv">
+          <span class="k">Contest deadline</span>
+          <span class="v">
+            <span class="num">${formatDate(contestDeadline)}</span>
+            <br>
+            <span class="countdown" data-deadline="${contestDeadline}" id="liveCountdown">${formatRemaining(contestDeadline - now)}</span>
+          </span>
+        </div>
+        <div class="kv"><span class="k">Reason</span><span class="v">${escapeHtml(vault.pending_reason || "—")}</span></div>
+      ` : ""}
+
+      <div class="divider"></div>
+
+      <div class="tabs">
+        <button data-tab="overview" class="${state.activeTab === "overview" ? "active" : ""}">Overview</button>
+        <button data-tab="actions" class="${state.activeTab === "actions" ? "active" : ""}">Actions</button>
+        <button data-tab="attestation" class="${state.activeTab === "attestation" ? "active" : ""}">Attestation</button>
+      </div>
+      <div id="tabBody"></div>
+    `;
+
+    startCountdown();
+
+    main.querySelectorAll(".tabs button").forEach(button => {
+      button.onclick = async () => {
+        state.activeTab = button.dataset.tab;
+        await renderVaultDetail(id, false);
+      };
+    });
+
+    const body = main.querySelector("#tabBody");
+
+    /* ---------------- OVERVIEW ---------------- */
+    if(state.activeTab === "overview"){
+      body.innerHTML = `
+        <p class="hint">Beneficiaries</p>
+        ${(vault.beneficiaries || []).map(b => {
+          const addr = normalizeWalletAddress(b.address);
+          return `
+            <div class="kv">
+              <span class="k num">${escapeHtml(b.address)} ${addr === wallet ? " (you)" : ""}</span>
+              <span class="v num">${(Number(b.bps) / 100).toFixed(2)}%</span>
+            </div>
+          `;
+        }).join("")}
+
+        <div class="divider"></div>
+
+        <p class="hint">Guardians ${(vault.guardians || []).length ? `· ${vault.guardian_threshold} vote(s) needed` : "· none configured"}</p>
+        ${(vault.guardians || []).length ? vault.guardians.map(g => {
+          const normalized = normalizeWalletAddress(g);
+          const voted = vault.guardian_votes?.[normalized];
+          return `
+            <div class="kv">
+              <span class="k num">${escapeHtml(g)} ${normalized === wallet ? " (you)" : ""}</span>
+              <span class="v num">${voted ? "Voted" : "Not voted"}</span>
+            </div>
+          `;
+        }).join("") : `<div class="empty">No guardians configured.</div>`}
+      `;
+    }
+
+    /* ---------------- ACTIONS ---------------- */
+    if(state.activeTab === "actions"){
+      const canCheckIn = isOwner && vault.status === "active";
+      const canRequestRelease = isOwner && vault.status === "active" && timeToDeadline <= 0;
+      const canCancelRelease = isOwner && vault.status === "pending_release";
+      const canFinalize = vault.status === "pending_release" && contestDeadline > 0 && now >= contestDeadline;
+      const myVote = wallet && vault.guardian_votes?.[wallet];
+      const canGuardianVote = isGuardian && vault.status === "active" && !myVote;
+      const canClaim = vault.status === "released" && isBeneficiary && !claimed;
+      const canWithdraw = isOwner && vault.status === "active";
+
+      body.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <button id="checkInBtn" class="teal" ${canCheckIn ? "" : "disabled"}>Check In</button>
+          <button id="requestReleaseBtn" ${canRequestRelease ? "" : "disabled"}>Request Release</button>
+          ${!canRequestRelease && isOwner && vault.status === "active" ? `
+            <div class="hint" style="margin-top:-4px;">
+              Request Release becomes available after the check-in deadline.
+              <span class="num">${formatRemaining(timeToDeadline)}</span>
+            </div>
+          ` : ""}
+
+          ${vault.attestation_url ? `
+            <div class="hint" style="margin-top:-4px;">
+              If the attestation page can't be reached when Request Release is called, the
+              call fails and the vault stays <b>active</b> — this is expected, fail-closed
+              behavior, not a bug. Retry once the page is reachable again.
+            </div>
+          ` : ""}
+
+          <button id="cancelReleaseBtn" class="danger" ${canCancelRelease ? "" : "disabled"}>Cancel Pending Release</button>
+          <button id="finalizeBtn" ${canFinalize ? "" : "disabled"}>Finalize Release</button>
+          <button id="guardianVoteBtn" ${canGuardianVote ? "" : "disabled"}>Guardian Vote: Emergency Release</button>
+          <button id="claimBtn" class="primary" ${canClaim ? "" : "disabled"}>${claimed ? "Already Claimed" : "Claim My Share"}</button>
+
+          ${isOwner ? `
+            <div class="divider"></div>
+            <div class="deposit-box">
+              <h4>Deposit GEN</h4>
+              <div class="deposit-row">
+                <input id="depositAmount" class="num" type="number" step="any" min="0" placeholder="GEN amount">
+                <button id="depositBtn" class="primary">Deposit</button>
+              </div>
+              <div class="hint">Deposit additional GEN into this vault.</div>
+            </div>
+
+            <div class="divider"></div>
+            <div class="row2">
+              <input id="withdrawAmount" class="num" type="number" step="any" min="0" placeholder="GEN to withdraw" ${canWithdraw ? "" : "disabled"}>
+              <button id="withdrawBtn" ${canWithdraw ? "" : "disabled"}>Withdraw</button>
+            </div>
+          ` : ""}
+        </div>
+
+        ${!state.address ? `<p class="hint">Connect your wallet to perform actions.</p>` : ""}
+      `;
+
+      function wire(selector, functionName, argsFunction, label){
+        const element = body.querySelector(selector);
+        if(!element) return;
+        element.onclick = async () => {
+          element.disabled = true;
+          const oldText = element.textContent;
+          element.textContent = "Sending…";
+          try{
+            await callWrite(functionName, argsFunction());
+            toast(label + " succeeded", "Transaction finalized.", "ok");
+            await refreshAfterWrite(id, label);
+          }catch(error){
+            log(`${label} ERROR`, { message: error?.message || String(error), name: error?.name, stack: error?.stack });
+
+            const isAttestationError =
+              functionName === "request_release" &&
+              !/ATTESTATION_STILL_LIVE/.test(String(error?.message || ""));
+
+            toast(
+              label + " failed",
+              functionName === "request_release"
+                ? "The vault was not changed. If this was a network/attestation-fetch " +
+                  "error, that's expected fail-closed behavior — retry later. " +
+                  (error?.message || String(error))
+                : (error?.message || String(error)),
+              "err"
+            );
+
+            try{ await renderVaultDetail(id, false); }catch{}
+          }finally{
+            if(document.body.contains(element)){
+              element.disabled = false;
+              element.textContent = oldText;
+            }
+          }
+        };
+      }
+
+      wire("#checkInBtn", "check_in", () => [id], "Check-in");
+      wire("#requestReleaseBtn", "request_release", () => [id], "Request release");
+      wire("#cancelReleaseBtn", "cancel_release", () => [id], "Cancel release");
+      wire("#finalizeBtn", "finalize_release", () => [id], "Finalize");
+      wire("#guardianVoteBtn", "guardian_vote_emergency", () => [id], "Guardian vote");
+      wire("#claimBtn", "claim", () => [id], "Claim");
+
+      const depositButton = body.querySelector("#depositBtn");
+      if(depositButton){
+        depositButton.onclick = async () => {
+          const input = body.querySelector("#depositAmount");
+          const amount = input.value.trim();
+          if(!amount || Number(amount) <= 0){
+            toast("Invalid deposit", "Enter a positive GEN amount.", "err");
+            return;
+          }
+          let amountWei;
+          try{
+            amountWei = toWei(amount);
+            if(amountWei <= 0n) throw new Error("Deposit must be greater than zero.");
+          }catch(error){
+            toast("Invalid deposit", error?.message || String(error), "err");
+            return;
+          }
+          depositButton.disabled = true;
+          const oldText = depositButton.textContent;
+          depositButton.textContent = "Sending…";
+          try{
+            log("DEPOSIT", { vaultId: id, amount, amountWei: amountWei.toString() });
+            await callWrite("deposit", [id], amountWei);
+            toast("Deposit succeeded", `${amount} GEN added to Vault #${id}.`, "ok");
+            await refreshAfterWrite(id, "Deposit");
+          }catch(error){
+            log("DEPOSIT ERROR", { message: error?.message || String(error), name: error?.name, stack: error?.stack });
+            toast("Deposit failed", error?.message || String(error), "err");
+            try{ await renderVaultDetail(id, false); }catch{}
+          }finally{
+            if(document.body.contains(depositButton)){
+              depositButton.disabled = false;
+              depositButton.textContent = oldText;
+            }
+          }
+        };
+      }
+
+      const withdrawButton = body.querySelector("#withdrawBtn");
+      if(withdrawButton){
+        withdrawButton.onclick = async () => {
+          const input = body.querySelector("#withdrawAmount");
+          const amount = input.value.trim();
+          if(!amount || Number(amount) <= 0){
+            toast("Invalid amount", "Enter a positive GEN amount.", "err");
+            return;
+          }
+          withdrawButton.disabled = true;
+          withdrawButton.textContent = "Sending…";
+          try{
+            const amountWei = toWei(amount);
+            await callWrite("owner_withdraw_unlocked", [id, amountWei.toString()]);
+            toast("Withdrawal succeeded", "Transaction finalized.", "ok");
+            await refreshAfterWrite(id, "Withdrawal");
+          }catch(error){
+            toast("Withdrawal failed", error?.message || String(error), "err");
+          }finally{
+            withdrawButton.disabled = false;
+            withdrawButton.textContent = "Withdraw";
+          }
+        };
+      }
+    }
+
+    /* ---------------- ATTESTATION ---------------- */
+    if(state.activeTab === "attestation"){
+      body.innerHTML = vault.attestation_url ? `
+        <div class="kv"><span class="k">URL</span><span class="v num">${escapeHtml(vault.attestation_url)}</span></div>
+        <div class="kv"><span class="k">Token</span><span class="v num">${escapeHtml(vault.attestation_token || "—")}</span></div>
+        <p class="hint">
+          GenLayer validators independently fetch this URL when a release is requested. If
+          the token is present, release is refused. If validators can't reach the URL at
+          all, release is also refused — never allowed — until it's reachable again.
+        </p>
+      ` : `<div class="empty">No attestation URL configured — this vault relies on the check-in timer alone.</div>`;
+    }
+  }catch(error){
+    log("RENDER VAULT ERROR", { message: error?.message || String(error), stack: error?.stack });
+    main.innerHTML = `<div class="empty">Failed to load vault #${escapeHtml(id)}.</div>`;
+  }
+}
+
+/* ============================================================
+   BENEFICIARY UI  (client-side format + duplicate checks mirror
+   the contract's own validation, so mistakes surface before a
+   transaction is ever sent)
+   ============================================================ */
+
+function addBeneficiaryRow(address="", percentage=""){
+  const container = document.getElementById("beneficiaryRows");
+  const row = document.createElement("div");
+  row.className = "beneficiary-row";
+  row.innerHTML = `
+    <input class="num ben-addr" placeholder="0x... beneficiary" value="${escapeHtml(address)}">
+    <input class="num ben-pct" type="number" min="0" max="100" step="any" placeholder="%" value="${escapeHtml(percentage)}">
+    <button type="button" class="ghost small ben-remove">✕</button>
+  `;
+  row.querySelector(".ben-remove").onclick = () => { row.remove(); updateBeneficiaryHints(); };
+  row.querySelectorAll("input").forEach(input => input.addEventListener("input", updateBeneficiaryHints));
+  container.appendChild(row);
+  updateBeneficiaryHints();
+}
+
+function updateBeneficiaryHints(){
+  const rows = [...document.querySelectorAll(".beneficiary-row")];
+  const addrInputs = rows.map(r => r.querySelector(".ben-addr"));
+  const pctInputs = rows.map(r => r.querySelector(".ben-pct"));
+
+  const total = pctInputs.reduce((sum, i) => sum + (Number(i.value) || 0), 0);
+  const bpsHint = document.getElementById("bpsSumHint");
+  bpsHint.textContent = `Total: ${total}% ${total === 100 ? "✓" : "— must equal 100%"}`;
+  bpsHint.className = "hint " + (total === 100 ? "good" : "warn");
+
+  const addresses = addrInputs.map(i => i.value.trim().toLowerCase()).filter(Boolean);
+  const seen = new Set();
+  const duplicates = new Set();
+  for(const a of addresses){
+    if(seen.has(a)) duplicates.add(a);
+    seen.add(a);
+  }
+
+  addrInputs.forEach(input => {
+    const value = input.value.trim().toLowerCase();
+    const malformed = value !== "" && !isAddress(value);
+    const dup = value !== "" && duplicates.has(value);
+    input.classList.toggle("invalid", malformed || dup);
+  });
+
+  const dupHint = document.getElementById("dupHint");
+  const anyMalformed = addresses.some(a => !isAddress(a));
+  if(duplicates.size){
+    dupHint.textContent = "Duplicate beneficiary address — the contract will reject this.";
+    dupHint.className = "hint warn";
+  }else if(anyMalformed){
+    dupHint.textContent = "One or more addresses aren't valid 0x… 40-hex addresses.";
+    dupHint.className = "hint warn";
+  }else{
+    dupHint.textContent = "";
+    dupHint.className = "hint";
+  }
+}
+
+document.getElementById("newVaultBtn").onclick = () => {
+  document.getElementById("beneficiaryRows").innerHTML = "";
+  addBeneficiaryRow();
+  addBeneficiaryRow();
+  document.getElementById("nvGuardians").value = "";
+  document.getElementById("nvThreshold").value = "1";
+  document.getElementById("nvInterval").value = "600";
+  document.getElementById("nvGrace").value = "300";
+  document.getElementById("nvContest").value = "300";
+  document.getElementById("nvAttestation").value = "";
+  document.getElementById("nvDeposit").value = "";
+  document.getElementById("newVaultOverlay").classList.add("show");
+};
+
+document.getElementById("addBeneficiary").onclick = () => addBeneficiaryRow();
+document.getElementById("nvClose").onclick = () => document.getElementById("newVaultOverlay").classList.remove("show");
+
+document.getElementById("nvAttestation").addEventListener("input", (e) => {
+  const value = e.target.value.trim();
+  const hint = document.getElementById("attestationHint");
+  if(value !== "" && !value.startsWith(ATTESTATION_URL_PREFIX)){
+    e.target.classList.add("invalid");
+    hint.classList.add("warn");
+  }else{
+    e.target.classList.remove("invalid");
+    hint.classList.remove("warn");
+  }
+});
+
+/* ============================================================
+   CREATE VAULT
+   ============================================================ */
+
+document.getElementById("nvSubmit").onclick = async () => {
+  const rows = [...document.querySelectorAll(".beneficiary-row")];
+  const beneficiaries = rows.map(row => {
+    const address = row.querySelector(".ben-addr").value.trim();
+    const percentage = Number(row.querySelector(".ben-pct").value || 0);
+    return { address, bps: Math.round(percentage * 100) };
+  }).filter(item => item.address);
+
+  if(!beneficiaries.length){
+    toast("Beneficiary required", "Add at least one beneficiary.", "err");
+    return;
+  }
+
+  for(const b of beneficiaries){
+    if(!isAddress(b.address)){
+      toast("Invalid beneficiary address", b.address, "err");
+      return;
+    }
+  }
+
+  const lowerAddrs = beneficiaries.map(b => b.address.toLowerCase());
+  if(new Set(lowerAddrs).size !== lowerAddrs.length){
+    toast("Duplicate beneficiary", "Each beneficiary address must be unique.", "err");
+    return;
+  }
+
+  const totalBps = beneficiaries.reduce((sum, item) => sum + item.bps, 0);
+  if(totalBps !== BPS_TOTAL){
+    toast("Invalid shares", `Shares currently equal ${totalBps / 100}%.`, "err");
+    return;
+  }
+
+  const guardianText = document.getElementById("nvGuardians").value.trim();
+  const guardians = guardianText ? guardianText.split(",").map(v => v.trim()).filter(Boolean) : [];
+  for(const guardian of guardians){
+    if(!isAddress(guardian)){
+      toast("Invalid guardian", guardian, "err");
+      return;
+    }
+  }
+
+  const threshold = document.getElementById("nvThreshold").value.trim() || "1";
+  const interval = document.getElementById("nvInterval").value.trim();
+  const grace = document.getElementById("nvGrace").value.trim();
+  const contest = document.getElementById("nvContest").value.trim();
+
+  const timeChecks = [
+    { name: "Check-in interval", value: interval, min: MIN_CHECKIN_INTERVAL },
+    { name: "Grace period", value: grace, min: MIN_TIME_SECONDS },
+    { name: "Contest period", value: contest, min: MIN_TIME_SECONDS }
+  ];
+  for(const item of timeChecks){
+    if(!/^\d+$/.test(item.value)){
+      toast("Invalid time", `${item.name} must be a whole number of seconds.`, "err");
+      return;
+    }
+    const seconds = Number(item.value);
+    if(!Number.isSafeInteger(seconds)){
+      toast("Invalid time", `${item.name} is too large.`, "err");
+      return;
+    }
+    if(seconds < item.min){
+      toast("Time too short", `${item.name} must be at least ${item.min} seconds.`, "err");
+      return;
+    }
+  }
+
+  const attestation = document.getElementById("nvAttestation").value.trim();
+  if(attestation !== "" && !attestation.startsWith(ATTESTATION_URL_PREFIX)){
+    toast(
+      "Attestation source not allowed",
+      `Only URLs starting with ${ATTESTATION_URL_PREFIX} are accepted by the contract.`,
+      "err"
+    );
+    return;
+  }
+
+  const deposit = document.getElementById("nvDeposit").value.trim() || "0";
+  let depositWei;
+  try{
+    depositWei = toWei(deposit);
+  }catch(error){
+    toast("Invalid deposit", error.message, "err");
+    return;
+  }
+
+  const button = document.getElementById("nvSubmit");
+  button.disabled = true;
+  button.textContent = "Sending…";
+
+  try{
+    log("CREATE VAULT", { beneficiaries, guardians, threshold, interval, grace, contest, attestation, deposit, depositWei: depositWei.toString() });
+
+    await callWrite("create_vault", [
+      JSON.stringify(beneficiaries),
+      JSON.stringify(guardians),
+      threshold,
+      interval,
+      grace,
+      contest,
+      attestation
+    ], depositWei);
+
+    toast("Vault created", "Transaction finalized.", "ok");
+    document.getElementById("newVaultOverlay").classList.remove("show");
+    await refreshVaults();
+  }catch(error){
+    toast("Create vault failed", error?.message || String(error), "err");
+  }finally{
+    button.disabled = false;
+    button.textContent = "Create Vault";
+  }
+};
+
+/* ============================================================
+   TOKEN MODAL
+   ============================================================ */
+
+document.getElementById("tokenClose").onclick = () => document.getElementById("tokenOverlay").classList.remove("show");
+document.getElementById("tokenCopy").onclick = async () => {
+  const value = document.getElementById("tokenValue").textContent;
+  try{
+    await navigator.clipboard.writeText(value);
+    toast("Copied", "", "ok");
+  }catch{
+    toast("Copy failed", "Copy the token manually.", "err");
+  }
+};
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+document.getElementById("connectBtn").onclick = connectWallet;
+document.getElementById("refreshBtn").onclick = async () => { await refreshVaults(); };
+
+/* ============================================================
+   METAMASK EVENTS
+   ============================================================ */
+
+if(window.ethereum){
+  window.ethereum.on("accountsChanged", async accounts => {
+    if(accounts && accounts.length){
+      state.address = accounts[0];
+      state.writeClient = null;
+      document.getElementById("connectBtn").textContent = shortAddr(accounts[0]);
+      await connectWallet();
+    }else{
+      state.address = null;
+      state.writeClient = null;
+      document.getElementById("connectBtn").textContent = "Connect Wallet";
+    }
+  });
+
+  window.ethereum.on("chainChanged", () => {
+    state.writeClient = null;
+    toast("Network changed", "Please reconnect the wallet.", "err");
+  });
+}
+
+/* ============================================================
+   INITIALIZATION
+   ============================================================ */
+
+(async function init(){
+  document.getElementById("netLabel").textContent = `GenLayer Studionet · #${STUDIO_CHAIN_ID}`;
+  try{
+    await refreshVaults();
+  }catch(error){
+    log("INIT ERROR", error?.message || String(error));
+  }
+})();
+
+</script>
+</body>
+</html>
